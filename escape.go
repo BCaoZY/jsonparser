@@ -8,11 +8,13 @@ import (
 // JSON Unicode stuff: see https://tools.ietf.org/html/rfc7159#section-7
 
 const supplementalPlanesOffset = 0x10000
-const highSurrogateOffset = 0xD800
-const lowSurrogateOffset = 0xDC00
+const highSurrogateOffsetStart = 0xD800
+const highSurrogateOffsetEnd   = 0xDBFF
+const lowSurrogateOffsetStart  = 0xDC00
+const lowSurrogateOffsetEnd    = 0xDFFF
 
 func combineUTF16Surrogates(high, low rune) rune {
-	return supplementalPlanesOffset + (high-highSurrogateOffset)<<10 + (low - lowSurrogateOffset)
+	return supplementalPlanesOffset + (high-highSurrogateOffsetStart)<<10 + (low - lowSurrogateOffsetStart)
 }
 
 const badHex = -1
@@ -53,13 +55,13 @@ func decodeUnicodeEscape(in []byte) (rune, int) {
 	if r, ok := decodeSingleUnicodeEscape(in); !ok {
 		// Invalid Unicode escape
 		return utf8.RuneError, -1
-	} else if r < highSurrogateOffset {
+	} else if r < highSurrogateOffsetStart || r > highSurrogateOffsetEnd {
 		// Valid Unicode escape in Basic Multilingual Plane
 		return r, 6
 	} else if r2, ok := decodeSingleUnicodeEscape(in[6:]); !ok { // Note: previous decodeSingleUnicodeEscape success guarantees at least 6 bytes remain
 		// UTF16 "high surrogate" without manditory valid following Unicode escape for the "low surrogate"
 		return utf8.RuneError, -1
-	} else if r2 < lowSurrogateOffset {
+	} else if r2 < lowSurrogateOffsetStart || r > lowSurrogateOffsetEnd{
 		// Invalid UTF16 "low surrogate"
 		return utf8.RuneError, -1
 	} else {
